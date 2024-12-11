@@ -1,0 +1,6 @@
+import { kafka_producer } from "extras://kafka";
+
+echo kafka_producer("kafka1", "test-topic", "myvalue", "mykey", [
+    "foo" => "bar",
+    "biz" => "buz",
+], -1);

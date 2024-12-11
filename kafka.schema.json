@@ -1,0 +1,31 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "description": "kafka schema",
+    "additionalProperties": false,
+    "properties": {
+        "queues": {
+            "type": "array",
+            "uniqueItems": true,
+            "description": "kafka queues",
+            "items": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "config"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Queue ID"
+                    },
+                    "config": {
+                        "type": "object",
+                        "additionalProperties": true
+                    }
+                }
+            }
+        }
+    }
+}
