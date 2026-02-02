@@ -51,6 +51,7 @@ plugins:
     - id: kafka1
       config:
         bootstrap.servers: kafka:9092
+        # queue.buffering.max.messages: 100000
 ```
 
 ## Exported functions
@@ -67,6 +68,7 @@ These functions needs to be [imported](https://docs.halon.io/hsl/structures.html
 - key `string` or `none` key to be sent
 - headers `array` a list of headers to be sent
 - partition `number` the partition to use, specificy -1 use the configured partitioner
+- block `boolean` if the function should block when the internal message queue is full, the default is `false`
 
 **Returns**
 

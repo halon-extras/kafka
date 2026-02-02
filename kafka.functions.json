@@ -27,10 +27,16 @@
                     "name": "partition",
                     "type": "number"
                 }
+            ],
+            "optional": [
+                {
+                    "name": "block",
+                    "type": "boolean"
+                }
             ]
         },
         "returnType": "array",
-        "detail": "kafka_producer(string $id, string $topic, string $value, string $key, array $headers, number $partition): array",
+        "detail": "kafka_producer(string $id, string $topic, string $value, string $key, array $headers, number $partition, [, boolean $block]): array",
         "value": "kafka_producer($0)",
         "documentation": "Send data to a Kafka endpoint.",
         "link": "[Full documentation](https://github.com/halon-extras/kafka)"

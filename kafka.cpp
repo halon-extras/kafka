@@ -75,6 +75,14 @@ void kafka_producer(HalonHSLContext *hhc, HalonHSLArguments *args, HalonHSLValue
 		return;
 	}
 
+	HalonHSLValue *block_ = HalonMTA_hsl_argument_get(args, 6);
+	if (block_ && HalonMTA_hsl_value_type(block_) != HALONMTA_HSL_TYPE_BOOLEAN)
+	{
+		HalonHSLValue* e = HalonMTA_hsl_throw(hhc);
+		HalonMTA_hsl_value_set(e, HALONMTA_HSL_TYPE_EXCEPTION, "argument is not a boolean", 0);
+		return;
+	}
+
 	char *id = nullptr;
 	HalonMTA_hsl_value_get(id_, HALONMTA_HSL_TYPE_STRING, &id, nullptr);
 
@@ -135,6 +143,13 @@ void kafka_producer(HalonHSLContext *hhc, HalonHSLArguments *args, HalonHSLValue
 	size_t payloadlen = 0;
 	if (payload_)
 		HalonMTA_hsl_value_get(payload_, HALONMTA_HSL_TYPE_STRING, &payload, &payloadlen);
+	bool block = false;
+	if (block_)
+		HalonMTA_hsl_value_get(block_, HALONMTA_HSL_TYPE_BOOLEAN, &block, nullptr);
+
+	unsigned int msgflags = RD_KAFKA_MSG_F_COPY;
+	if (block_)
+		msgflags |= RD_KAFKA_MSG_F_BLOCK;
 
 	rd_kafka_resp_err_t err = rd_kafka_producev(
 		kafka_->second.rk,
@@ -143,7 +158,7 @@ void kafka_producer(HalonHSLContext *hhc, HalonHSLArguments *args, HalonHSLValue
 		RD_KAFKA_V_KEY(key, keylen),
 		RD_KAFKA_V_VALUE(payload, payloadlen),
 		RD_KAFKA_V_HEADERS(hdrs),
-		RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY), RD_KAFKA_V_END);
+		RD_KAFKA_V_MSGFLAGS(msgflags), RD_KAFKA_V_END);
 
 	HalonMTA_hsl_value_set(ret, HALONMTA_HSL_TYPE_ARRAY, nullptr, 0);
 
