@@ -58,7 +58,7 @@ plugins:
 
 These functions needs to be [imported](https://docs.halon.io/hsl/structures.html#import) from the `extras://kafka` module path.
 
-### kafka_producer(id, topic[, value[, key[, headers[, partition]]]])
+### kafka_producer(id, topic[, value[, key[, headers[, partition[, block]]]]])
 
 **Params**
 
