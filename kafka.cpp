@@ -318,7 +318,7 @@ bool Halon_init(HalonInitContext *hic)
 			}
 		}
 	}
-	catch (const std::runtime_error &e)
+	catch (const std::exception &e)
 	{
 		syslog(LOG_CRIT, "kafka: %s", e.what());
 		shutdown_all();
