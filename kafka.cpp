@@ -12,7 +12,7 @@ static std::atomic<bool> running(true);
 
 struct Kafka
 {
-	rd_kafka_t *rk;
+	rd_kafka_t *rk = nullptr;
 	std::thread poll;
 };
 
