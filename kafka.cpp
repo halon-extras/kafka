@@ -224,6 +224,26 @@ static void logger(const rd_kafka_t *rk, int level, const char *fac, const char 
 	syslog(LOG_ERR, "kafka: %s(%i): %s: %s", fac, level, rk ? rd_kafka_name(rk) : "", buf);
 }
 
+// Stops all poll threads and destroys all producers, including entries left
+// partially initialized by a failed Halon_init(). Safe to call more than once.
+static void shutdown_all()
+{
+	running = false;
+	for (auto &i : kafkaConfig)
+	{
+		if (i.second.poll.joinable())
+			i.second.poll.join();
+		if (!i.second.rk)
+			continue;
+		rd_kafka_flush(i.second.rk, 60 * 1000);
+		size_t qlen = rd_kafka_outq_len(i.second.rk);
+		if (qlen)
+			syslog(LOG_CRIT, "kafka: %s: terminated with %zu message(s) lost in queue", i.first.c_str(), qlen);
+		rd_kafka_destroy(i.second.rk);
+	}
+	kafkaConfig.clear();
+}
+
 HALON_EXPORT
 bool Halon_init(HalonInitContext *hic)
 {
@@ -249,15 +269,16 @@ bool Halon_init(HalonInitContext *hic)
 				if (kafkaConfig.find(id_) != kafkaConfig.end())
 					throw std::runtime_error(std::string("Duplicate id: ") + id_);
 
-				kafkaConfig[id_] = {nullptr, std::thread()};
-
 				HalonConfig *config = HalonMTA_config_object_get(queue, "config");
 				if (!config)
-					throw std::runtime_error("Missing config");
+					throw std::runtime_error(std::string(id_) + ": Missing config");
+
+				Kafka &kafka = kafkaConfig[id_];
 
 				rd_kafka_conf_t *conf = rd_kafka_conf_new();
 				rd_kafka_conf_set_dr_msg_cb(conf, dr_msg_cb);
 				rd_kafka_conf_set_log_cb(conf, logger);
+				rd_kafka_conf_set_opaque(conf, &kafka);
 
 				size_t k = 0;
 				HalonConfig *key;
@@ -265,7 +286,10 @@ bool Halon_init(HalonInitContext *hic)
 				{
 					const char *key_ = HalonMTA_config_string_get(key, nullptr);
 					if (!key_)
-						throw std::runtime_error("Missing key in config");
+					{
+						rd_kafka_conf_destroy(conf);
+						throw std::runtime_error(std::string(id_) + ": Missing key in config");
+					}
 
 					const char *val = HalonMTA_config_string_get(HalonMTA_config_object_get(config, key_), nullptr);
 					if (val)
@@ -278,17 +302,16 @@ bool Halon_init(HalonInitContext *hic)
 					}
 				}
 
-				rd_kafka_conf_set_opaque(conf, &(kafkaConfig.find(id_)->second));
-
-				auto rk = rd_kafka_new(RD_KAFKA_PRODUCER, conf, errstr, sizeof(errstr));
+				// on success rd_kafka_new() takes ownership of conf
+				rd_kafka_t *rk = rd_kafka_new(RD_KAFKA_PRODUCER, conf, errstr, sizeof(errstr));
 				if (!rk)
 				{
 					rd_kafka_conf_destroy(conf);
 					throw std::runtime_error(std::string(id_) + ": " + errstr);
 				}
 
-				kafkaConfig[id_].rk = rk;
-				kafkaConfig[id_].poll = std::thread([rk]() {
+				kafka.rk = rk;
+				kafka.poll = std::thread([rk]() {
 					while (running)
 						rd_kafka_poll(rk, 1000);
 				});
@@ -298,6 +321,7 @@ bool Halon_init(HalonInitContext *hic)
 	catch (const std::runtime_error &e)
 	{
 		syslog(LOG_CRIT, "kafka: %s", e.what());
+		shutdown_all();
 		return false;
 	}
 
@@ -307,16 +331,7 @@ bool Halon_init(HalonInitContext *hic)
 HALON_EXPORT
 void Halon_cleanup()
 {
-	running = false;
-	for (auto &i : kafkaConfig)
-	{
-		rd_kafka_flush(i.second.rk, 60 * 1000);
-		i.second.poll.join();
-		size_t qlen = rd_kafka_outq_len(i.second.rk);
-		if (qlen)
-			syslog(LOG_CRIT, "kafka: terminated with %zu message(s) lost in queue", qlen);
-		rd_kafka_destroy(i.second.rk);
-	}
+	shutdown_all();
 }
 
 HALON_EXPORT
