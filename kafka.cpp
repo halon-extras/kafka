@@ -246,6 +246,9 @@ bool Halon_init(HalonInitContext *hic)
 				if (!id_)
 					throw std::runtime_error("Missing id");
 
+				if (kafkaConfig.find(id_) != kafkaConfig.end())
+					throw std::runtime_error(std::string("Duplicate id: ") + id_);
+
 				kafkaConfig[id_] = {nullptr, std::thread()};
 
 				HalonConfig *config = HalonMTA_config_object_get(queue, "config");
