@@ -148,7 +148,7 @@ void kafka_producer(HalonHSLContext *hhc, HalonHSLArguments *args, HalonHSLValue
 		HalonMTA_hsl_value_get(block_, HALONMTA_HSL_TYPE_BOOLEAN, &block, nullptr);
 
 	unsigned int msgflags = RD_KAFKA_MSG_F_COPY;
-	if (block_)
+	if (block)
 		msgflags |= RD_KAFKA_MSG_F_BLOCK;
 
 	rd_kafka_resp_err_t err = rd_kafka_producev(
