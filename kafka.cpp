@@ -164,7 +164,8 @@ void kafka_producer(HalonHSLContext *hhc, HalonHSLArguments *args, HalonHSLValue
 
 	if (err)
 	{
-		rd_kafka_headers_destroy(hdrs);
+		if (hdrs)
+			rd_kafka_headers_destroy(hdrs);
 
 		HalonHSLValue *k1, *v1;
 		HalonMTA_hsl_value_array_add(ret, &k1, &v1);
